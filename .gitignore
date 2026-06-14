@@ -1,0 +1,11 @@
+# 빌드 산출물
+*.pyc
+__pycache__/
+
+# 에디터/IDE
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+.omc/

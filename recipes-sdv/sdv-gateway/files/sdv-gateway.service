@@ -1,0 +1,21 @@
+[Unit]
+Description=SDV Multi-protocol Diagnostic Gateway
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+ExecStartPre=/usr/bin/can-setup
+ExecStart=/usr/bin/sdv-gateway
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+# 보안 (임베디드 데모용 완화)
+#ProtectSystem=strict
+#ProtectHome=yes
+#NoNewPrivileges=yes
+
+[Install]
+WantedBy=multi-user.target
