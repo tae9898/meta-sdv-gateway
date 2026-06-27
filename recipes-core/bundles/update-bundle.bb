@@ -3,8 +3,8 @@ DESCRIPTION = "RAUC bundle generator for SDV gateway"
 inherit bundle
 
 RAUC_BUNDLE_COMPATIBLE = "${MACHINE}"
-RAUC_BUNDLE_VERSION = "1.0.0"
-RAUC_BUNDLE_DESCRIPTION = "SDV gateway rootfs update bundle"
+RAUC_BUNDLE_VERSION = "1.1.0"
+RAUC_BUNDLE_DESCRIPTION = "SDV gateway v1.1 - bidirectional DoIP<->CAN"
 
 RAUC_BUNDLE_FORMAT = "verity"
 

@@ -48,7 +48,10 @@ static void setup_signals(void)
 
 int main(void)
 {
-    pthread_t tid_can, tid_rs485, tid_doip;
+    pthread_t tid_can, tid_rs485, tid_doip, tid_doip_rx;
+
+    /* stdout line-buffer (systemd journal에 즉시 출력) */
+    setvbuf(stdout, NULL, _IOLBF, 0);
 
     printf("[gateway] SDV Gateway starting...\n");
 
@@ -65,11 +68,12 @@ int main(void)
     setup_signals();
 
     /* 스레드 생성 */
-    pthread_create(&tid_can,   NULL, can_rx_thread,   NULL);
-    pthread_create(&tid_rs485, NULL, rs485_rx_thread,  NULL);
-    pthread_create(&tid_doip,  NULL, doip_tx_thread,   NULL);
+    pthread_create(&tid_can,      NULL, can_rx_thread,   NULL);
+    pthread_create(&tid_rs485,    NULL, rs485_rx_thread,  NULL);
+    pthread_create(&tid_doip,     NULL, doip_tx_thread,   NULL);
+    pthread_create(&tid_doip_rx,  NULL, doip_rx_thread,   NULL);
 
-    printf("[gateway] 3 threads started. Press Ctrl+C to stop.\n");
+    printf("[gateway] 4 threads started. Press Ctrl+C to stop.\n");
 
     /* 메인 루프: 통계 주기적 출력 */
     while (g_running) {
@@ -82,9 +86,10 @@ int main(void)
     printf("\n[gateway] shutting down...\n");
 
     /* 스레드 종료 대기 */
-    pthread_join(tid_doip,  NULL);
-    pthread_join(tid_can,   NULL);
-    pthread_join(tid_rs485, NULL);
+    pthread_join(tid_doip_rx, NULL);
+    pthread_join(tid_doip,    NULL);
+    pthread_join(tid_can,     NULL);
+    pthread_join(tid_rs485,   NULL);
 
     /* 최종 통계 */
     printf("[gateway] final stats:\n");

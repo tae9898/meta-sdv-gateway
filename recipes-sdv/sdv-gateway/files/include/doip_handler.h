@@ -29,4 +29,11 @@
  */
 void *doip_tx_thread(void *arg);
 
+/**
+ * DoIP 수신 스레드 진입점 (양방향: Tester → DoIP → CAN).
+ * UDP 13400 수신 → DoIP diagnostic 파싱 → CAN 0x7E0 송신.
+ * 요청자 주소를 기억해 doip_tx가 유니캐스트 회신.
+ */
+void *doip_rx_thread(void *arg);
+
 #endif /* DOIP_HANDLER_H */
