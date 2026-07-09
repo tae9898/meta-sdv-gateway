@@ -1,0 +1,14 @@
+[Unit]
+Description=Predictive Maintenance UART Receiver (STM32 -> SQLite)
+After=sysinit.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/pm-receiver /dev/ttyACM0 /var/lib/pm-receiver/sensors.db
+Restart=on-failure
+RestartSec=3
+StateDirectory=pm-receiver
+# /dev/ttyACM0 접근을 위해 root로 실행(기본)
+
+[Install]
+WantedBy=multi-user.target

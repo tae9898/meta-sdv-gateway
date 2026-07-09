@@ -17,6 +17,7 @@ IMAGE_INSTALL:append = " \
     iproute2 \
     ethtool \
     sdv-gateway \
+    pm-receiver \
     kernel-modules \
 "
 
