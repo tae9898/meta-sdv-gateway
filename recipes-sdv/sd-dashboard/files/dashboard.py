@@ -6,6 +6,7 @@ RPi3의 pm-receiver SQLite를 읽어 Chart.js로 실시간 시각화 + 이상 �
 접속: http://<RPi3>:8080/
 """
 import json
+import os
 import sqlite3
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -18,7 +19,7 @@ PORT = 8080
 HTML = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>예지보전 대시보드</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="/chart.js"></script>
 <style>
   *{box-sizing:border-box}
   body{font-family:system-ui,Segoe UI,sans-serif;margin:0;padding:14px;background:#0e1117;color:#e6e6e6}
@@ -153,6 +154,13 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if u.path == "/":
                 self._send(HTML, "text/html; charset=utf-8")
+            elif u.path == "/chart.js":
+                p = os.path.join(os.path.dirname(os.path.abspath(__file__)), "chart.js")
+                try:
+                    with open(p, "rb") as f:
+                        self._send(f.read(), "application/javascript")
+                except Exception:
+                    self._send("/* chart.js not found */", "application/javascript", 404)
             elif u.path == "/api/history":
                 n = min(int(q.get("n", ["60"])[0]), 600)
                 self._json(db_query(

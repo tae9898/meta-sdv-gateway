@@ -7,6 +7,7 @@ LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda
 PV = "0.1.0"
 
 SRC_URI = "file://dashboard.py \
+           file://chart.js \
            file://sd-dashboard.service"
 
 S = "${WORKDIR}"
@@ -22,8 +23,9 @@ SYSTEMD_AUTO_ENABLE:${PN} = "enable"
 do_install() {
     install -d ${D}${bindir}
     install -m 0755 ${WORKDIR}/dashboard.py ${D}${bindir}/dashboard.py
+    install -m 0644 ${WORKDIR}/chart.js ${D}${bindir}/chart.js
     install -d ${D}${systemd_system_unitdir}
     install -m 0644 ${WORKDIR}/sd-dashboard.service ${D}${systemd_system_unitdir}/
 }
 
-FILES:${PN} += "${bindir}/dashboard.py ${systemd_system_unitdir}/sd-dashboard.service"
+FILES:${PN} += "${bindir}/dashboard.py ${bindir}/chart.js ${systemd_system_unitdir}/sd-dashboard.service"
