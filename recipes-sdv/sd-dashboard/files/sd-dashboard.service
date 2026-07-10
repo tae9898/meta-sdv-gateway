@@ -1,0 +1,12 @@
+[Unit]
+Description=Predictive Maintenance Dashboard (Chart.js, stdlib Python)
+After=pm-receiver.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /usr/bin/dashboard.py /var/lib/pm-receiver/sensors.db 8080
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

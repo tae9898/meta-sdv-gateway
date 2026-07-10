@@ -18,6 +18,7 @@ IMAGE_INSTALL:append = " \
     ethtool \
     sdv-gateway \
     pm-receiver \
+    sdv-dashboard \
     kernel-modules \
 "
 
