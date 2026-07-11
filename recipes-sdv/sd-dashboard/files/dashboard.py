@@ -59,9 +59,9 @@ const chart = new Chart(document.getElementById('chart').getContext('2d'), {
   ]},
   options:{animation:false, scales:{
     x:{display:false},
-    y:{position:'left', grid:{color:#21262d}, ticks:{color:#8b949e}},
-    y1:{position:'right', grid:{drawOnChartArea:false}, ticks:{color:#8b949e}}
-  }, plugins:{legend:{labels:{color:#c9d1d9}}}}
+    y:{position:'left', grid:{color:'#21262d'}, ticks:{color:'#8b949e'}},
+    y1:{position:'right', grid:{drawOnChartArea:false}, ticks:{color:'#8b949e'}}
+  }, plugins:{legend:{labels:{color:'#c9d1d9'}}}}
 });
 function fmtTime(ts){return new Date(ts*1000).toLocaleTimeString('ko-KR');}
 function pushPoint(ts, rms, kurt){
