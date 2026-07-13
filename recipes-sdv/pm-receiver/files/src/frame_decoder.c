@@ -20,6 +20,7 @@ const char *frame_type_name(frame_type_t t) {
         case FT_FFT_RESULT:     return "FFT_RESULT";
         case FT_FEATURE_VECTOR: return "FEATURE_VECTOR";
         case FT_ANOMALY_ALERT:  return "ANOMALY_ALERT";
+        case FT_TEMPERATURE:    return "TEMPERATURE";
         default:                return "UNKNOWN";
     }
 }

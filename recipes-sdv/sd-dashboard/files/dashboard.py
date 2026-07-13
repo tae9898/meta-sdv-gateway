@@ -45,6 +45,7 @@ HTML = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8">
   <div class="stat"><b>Crest</b><span id="s_crest">-</span></div>
   <div class="stat"><b>지배주파수 (Hz)</b><span id="s_f0">-</span></div>
   <div class="stat"><b>상태</b><span id="s_state">-</span></div>
+  <div class="stat"><b>온도 (°C)</b><span id="s_temp">-</span></div>
 </div>
 <div class="card"><canvas id="chart"></canvas></div>
 <div class="card"><b>최근 이상 이벤트</b><div id="anoms" style="margin-top:6px"></div></div>
@@ -107,6 +108,8 @@ async function poll(){
       st.className = L.anomaly ? 'bad' : 'ok';
       if (chart.data.labels.length) pushPoint(L.ts, L.rms, L.kurtosis);
     }
+    const T = await get('/api/temp');
+    if (T) document.getElementById('s_temp').textContent = T.temp;
     const A = await get('/api/anomalies?n=5') || [];
     if (A.length && A[0].ts !== lastAnomTs){
       lastAnomTs = A[0].ts;
@@ -140,6 +143,8 @@ def db_cleanup():
     try:
         con.execute("DELETE FROM feature_vector WHERE rowid NOT IN "
                     "(SELECT rowid FROM feature_vector ORDER BY ts DESC LIMIT 200)")
+        con.execute("DELETE FROM temperature WHERE rowid NOT IN "
+                    "(SELECT rowid FROM temperature ORDER BY ts DESC LIMIT 200)")
         con.commit()
     except Exception:
         pass
@@ -194,6 +199,9 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(db_query(
                     "SELECT ts,ts_src,rms,kurt,thr_rms,thr_kurt,reason "
                     "FROM anomaly_event ORDER BY ts DESC LIMIT ?", (n,)))
+            elif u.path == "/api/temp":
+                r = db_query("SELECT ts, ts_src, temp FROM temperature ORDER BY ts DESC LIMIT 1")
+                self._json(r[0] if r else None)
             elif u.path == "/api/stats":
                 r = db_query("SELECT COUNT(*) c, MAX(ts) t FROM feature_vector")
                 a = db_query("SELECT COUNT(*) c FROM anomaly_event")

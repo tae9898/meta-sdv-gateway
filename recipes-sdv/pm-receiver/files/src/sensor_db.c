@@ -16,13 +16,18 @@
     "CREATE TABLE IF NOT EXISTS anomaly_event(" \
     "  ts INTEGER DEFAULT (strftime('%s','now'))," \
     "  ts_src INTEGER, rms REAL, kurt REAL, thr_rms REAL, thr_kurt REAL, reason INTEGER);" \
-    "CREATE INDEX IF NOT EXISTS idx_ae_ts ON anomaly_event(ts DESC);"
+    "CREATE INDEX IF NOT EXISTS idx_ae_ts ON anomaly_event(ts DESC);" \
+    "CREATE TABLE IF NOT EXISTS temperature(" \
+    "  ts INTEGER DEFAULT (strftime('%s','now'))," \
+    "  ts_src INTEGER, temp REAL);"
 
 #define INS_FEATURE \
     "INSERT INTO feature_vector(ts_src,rms,peak,p2p,kurtosis,crest,f0,band_low,band_mid,band_high,anomaly)" \
     " VALUES (?,?,?,?,?,?,?,?,?,?,?);"
 #define INS_ANOMALY \
     "INSERT INTO anomaly_event(ts_src,rms,kurt,thr_rms,thr_kurt,reason) VALUES (?,?,?,?,?,?);"
+#define INS_TEMP \
+    "INSERT INTO temperature(ts_src, temp) VALUES (?, ?);"
 
 int sensor_db_open(sensor_db_t *s, const char *path) {
     memset(s, 0, sizeof(*s));
@@ -32,7 +37,8 @@ int sensor_db_open(sensor_db_t *s, const char *path) {
     }
     if (sensor_db_create_schema(s) != 0) return -1;
     if (sqlite3_prepare_v2(s->db, INS_FEATURE, -1, &s->stmt_feature, NULL) != SQLITE_OK ||
-        sqlite3_prepare_v2(s->db, INS_ANOMALY, -1, &s->stmt_anomaly, NULL) != SQLITE_OK) {
+        sqlite3_prepare_v2(s->db, INS_ANOMALY, -1, &s->stmt_anomaly, NULL) != SQLITE_OK ||
+        sqlite3_prepare_v2(s->db, INS_TEMP, -1, &s->stmt_temp, NULL) != SQLITE_OK) {
         fprintf(stderr, "[db] prepare: %s\n", sqlite3_errmsg(s->db));
         return -1;
     }
@@ -81,9 +87,19 @@ int sensor_db_insert_anomaly(sensor_db_t *s, const frame_anomaly_t *a) {
     return (rc == SQLITE_DONE) ? 0 : -1;
 }
 
+int sensor_db_insert_temperature(sensor_db_t *s, const frame_temperature_t *t) {
+    sqlite3_stmt *st = s->stmt_temp;
+    sqlite3_bind_int64(st, 1, (sqlite3_int64)t->ts_ms);
+    sqlite3_bind_double(st, 2, (double)t->temp_x100 / 100.0);
+    int rc = sqlite3_step(st);
+    sqlite3_reset(st);
+    return (rc == SQLITE_DONE) ? 0 : -1;
+}
+
 void sensor_db_close(sensor_db_t *s) {
     if (s->stmt_feature) sqlite3_finalize(s->stmt_feature);
     if (s->stmt_anomaly) sqlite3_finalize(s->stmt_anomaly);
+    if (s->stmt_temp)    sqlite3_finalize(s->stmt_temp);
     if (s->db) sqlite3_close(s->db);
     memset(s, 0, sizeof(*s));
 }

@@ -20,6 +20,7 @@ typedef enum {
     FT_FFT_RESULT     = 0x02,
     FT_FEATURE_VECTOR = 0x03,
     FT_ANOMALY_ALERT  = 0x04,
+    FT_TEMPERATURE    = 0x05,   /* DS18B20 온도 */
 } frame_type_t;
 
 #pragma pack(push, 1)
@@ -47,6 +48,12 @@ typedef struct {
     int16_t  thr_kurt_x100;
     uint8_t  reason;         /* 0=rms 초과, 1=kurtosis 초과 */
 } frame_anomaly_t;           /* 13 bytes */
+
+/* ★ STM32 frame_temperature_t 와 동일 */
+typedef struct {
+    uint32_t ts_ms;
+    int16_t  temp_x100;         /* 온도 °C ×100 */
+} frame_temperature_t;         /* 6 bytes */
 #pragma pack(pop)
 
 /* CRC16-CCITT (poly 0x1021, init 0xFFFF) — STM32 frame_crc16 과 동일 구현 */

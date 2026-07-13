@@ -81,6 +81,10 @@ int main(int argc, char **argv) {
                 printf("[ANOMALY] ts=%u rms=%d(thr %d) kurt=%.2f(thr %.2f) reason=%u\n",
                        (unsigned)a.ts_ms, (int)a.rms, (int)a.thr_rms,
                        a.kurtosis_x100 / 100.0, a.thr_kurt_x100 / 100.0, (unsigned)a.reason);
+            } else if (fr.type == FT_TEMPERATURE && fr.payload_len == sizeof(frame_temperature_t)) {
+                frame_temperature_t t; memcpy(&t, fr.payload, sizeof t);
+                sensor_db_insert_temperature(&db, &t);
+                printf("[TEMP] ts=%u temp=%.2fC\n", (unsigned)t.ts_ms, t.temp_x100 / 100.0);
             }
         }
         time_t now = time(NULL);
