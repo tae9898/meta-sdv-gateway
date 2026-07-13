@@ -132,6 +132,21 @@ def db_query(sql, args=()):
     return rows
 
 
+_cleanup_counter = 0
+
+def db_cleanup():
+    """feature_vector 최근 200행만 유지 (디스크 만석 방지). anomaly_event는 보존."""
+    con = sqlite3.connect(DB_PATH, timeout=2)
+    try:
+        con.execute("DELETE FROM feature_vector WHERE rowid NOT IN "
+                    "(SELECT rowid FROM feature_vector ORDER BY ts DESC LIMIT 200)")
+        con.commit()
+    except Exception:
+        pass
+    finally:
+        con.close()
+
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass
@@ -151,6 +166,10 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         u = urlparse(self.path)
         q = parse_qs(u.query)
+        global _cleanup_counter
+        _cleanup_counter += 1
+        if _cleanup_counter % 60 == 0:
+            db_cleanup()
         try:
             if u.path == "/":
                 self._send(HTML, "text/html; charset=utf-8")
