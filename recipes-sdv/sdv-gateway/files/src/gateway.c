@@ -6,9 +6,15 @@
 #include "gateway.h"
 
 #include <errno.h>
+#include <linux/can.h>
+#include <linux/can/raw.h>
+#include <net/if.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
 #include <time.h>
+#include <unistd.h>
 
 /* ── Ring Buffer Queue ─────────────────────────────────────── */
 
@@ -82,12 +88,58 @@ void gw_stats_destroy(gw_stats_t *s)
     pthread_spin_destroy(&s->lock);
 }
 
-void gw_stats_print(const gw_stats_t *s)
+void gw_stats_print(gw_stats_t *s)
 {
-    pthread_spin_lock((pthread_spinlock_t *)&s->lock);
+    pthread_spin_lock(&s->lock);
     printf("[stats] CAN RX: %lu  RS485 RX: %lu  DoIP TX: %lu\n",
            (unsigned long)s->can_rx_count,
            (unsigned long)s->rs485_rx_count,
            (unsigned long)s->doip_tx_count);
-    pthread_spin_unlock((pthread_spinlock_t *)&s->lock);
+    pthread_spin_unlock(&s->lock);
+}
+
+/* ── Utilities ─────────────────────────────────────────────── */
+
+uint64_t gw_get_monotonic_ns(void)
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (uint64_t)ts.tv_sec * 1000000000ULL + (uint64_t)ts.tv_nsec;
+}
+
+int gw_open_can_socket(const char *ifname, const char *tag)
+{
+    int sock = socket(PF_CAN, SOCK_RAW, CAN_RAW);
+    if (sock < 0) {
+        fprintf(stderr, "%s socket: %s\n", tag, strerror(errno));
+        return -1;
+    }
+
+    int enable = 1;
+    if (setsockopt(sock, SOL_CAN_RAW, CAN_RAW_FD_FRAMES, &enable, sizeof(enable)) < 0) {
+        fprintf(stderr, "%s setsockopt CAN_RAW_FD_FRAMES: %s\n", tag, strerror(errno));
+        close(sock);
+        return -1;
+    }
+
+    struct ifreq ifr;
+    memset(&ifr, 0, sizeof(ifr));
+    strncpy(ifr.ifr_name, ifname, IFNAMSIZ - 1);
+    if (ioctl(sock, SIOCGIFINDEX, &ifr) < 0) {
+        fprintf(stderr, "%s ioctl SIOCGIFINDEX (%s up?): %s\n", tag, ifname, strerror(errno));
+        close(sock);
+        return -1;
+    }
+
+    struct sockaddr_can addr;
+    memset(&addr, 0, sizeof(addr));
+    addr.can_family = AF_CAN;
+    addr.can_ifindex = ifr.ifr_ifindex;
+    if (bind(sock, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+        fprintf(stderr, "%s bind: %s\n", tag, strerror(errno));
+        close(sock);
+        return -1;
+    }
+
+    return sock;
 }

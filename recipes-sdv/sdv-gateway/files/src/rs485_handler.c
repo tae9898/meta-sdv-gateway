@@ -13,10 +13,8 @@
 
 #include <fcntl.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <termios.h>
-#include <time.h>
 #include <unistd.h>
 #include <errno.h>
 
@@ -25,13 +23,6 @@
 
 /* 최소 프레임 길이: ID_H + ID_L + DLC = 3바이트 */
 #define FRAME_HEADER_LEN  3
-
-static uint64_t get_monotonic_ns(void)
-{
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (uint64_t)ts.tv_sec * 1000000000ULL + (uint64_t)ts.tv_nsec;
-}
 
 static int configure_serial(int fd)
 {
@@ -132,7 +123,7 @@ void *rs485_rx_thread(void *arg)
             msg.type = MSG_TYPE_RS485;
             msg.can_id = ((uint32_t)parser.buf[0] << 8) | parser.buf[1];
             msg.dlc = parser.buf[2];
-            msg.timestamp_ns = get_monotonic_ns();
+            msg.timestamp_ns = gw_get_monotonic_ns();
 
             size_t copy_len = msg.dlc;
             if (copy_len > GW_MAX_PAYLOAD) copy_len = GW_MAX_PAYLOAD;

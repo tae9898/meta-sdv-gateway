@@ -16,13 +16,9 @@
 
 #include <arpa/inet.h>
 #include <linux/can.h>
-#include <linux/can/raw.h>
-#include <net/if.h>
 #include <pthread.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -151,28 +147,9 @@ void *doip_rx_thread(void *arg)
     }
 
     /* CAN 송신 소켓 */
-    int csock = socket(PF_CAN, SOCK_RAW, CAN_RAW);
+    int csock = gw_open_can_socket(CAN_IFACE, "[doip-rx]");
     if (csock < 0) {
-        perror("[doip-rx] can socket failed");
         close(usock);
-        return NULL;
-    }
-    int fd_en = 1;
-    setsockopt(csock, SOL_CAN_RAW, CAN_RAW_FD_FRAMES, &fd_en, sizeof(fd_en));
-    struct ifreq ifr;
-    strncpy(ifr.ifr_name, CAN_IFACE, IFNAMSIZ - 1);
-    if (ioctl(csock, SIOCGIFINDEX, &ifr) < 0) {
-        perror("[doip-rx] can ioctl SIOCGIFINDEX failed (can0 up?)");
-        close(usock); close(csock);
-        return NULL;
-    }
-    struct sockaddr_can caddr;
-    memset(&caddr, 0, sizeof(caddr));
-    caddr.can_family = AF_CAN;
-    caddr.can_ifindex = ifr.ifr_ifindex;
-    if (bind(csock, (struct sockaddr *)&caddr, sizeof(caddr)) < 0) {
-        perror("[doip-rx] can bind failed");
-        close(usock); close(csock);
         return NULL;
     }
 

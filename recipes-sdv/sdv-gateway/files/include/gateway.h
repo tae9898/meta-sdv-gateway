@@ -63,7 +63,11 @@ int  gw_queue_pop(gw_queue_t *q, gw_message_t *msg);
 /* 통계 */
 int  gw_stats_init(gw_stats_t *s);
 void gw_stats_destroy(gw_stats_t *s);
-void gw_stats_print(const gw_stats_t *s);
+void gw_stats_print(gw_stats_t *s);
+
+/* 유틸리티 (여러 핸들러 공용) */
+uint64_t gw_get_monotonic_ns(void);                               /* CLOCK_MONOTONIC ns */
+int      gw_open_can_socket(const char *ifname, const char *tag); /* bound CAN-FD raw socket, -1 on error (tag로 로그) */
 
 /* 공용 글로벌 참조 (main.c에서 정의) */
 extern gw_queue_t  g_rx_queue;
