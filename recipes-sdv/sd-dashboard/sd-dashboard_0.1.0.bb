@@ -14,7 +14,7 @@ S = "${WORKDIR}"
 
 inherit systemd
 
-# python3(표준라이브러리 http.server+sqlite3)만 필요. pm-receiver가 만든 DB를 읽음.
+# python3(stdlib http.server + sqlite3) is enough. Reads the DB created by pm-receiver.
 RDEPENDS:${PN} = "python3 pm-receiver"
 
 SYSTEMD_SERVICE:${PN} = "sd-dashboard.service"

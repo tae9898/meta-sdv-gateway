@@ -4,8 +4,8 @@ SRC_URI:append := "  \
 "
 
 # additional dependencies required to run RAUC on the target
-# u-boot-env: /etc/fw_env.config (env 위치)
-# libubootenv-bin: fw_printenv/fw_setenv (u-boot-fw-utils 제공, 하드웨어 독립)
+# u-boot-env: /etc/fw_env.config (env location)
+# libubootenv-bin: fw_printenv/fw_setenv (provided by u-boot-fw-utils, hardware-independent)
 RDEPENDS:${PN} += "u-boot-env libubootenv-bin"
 
 inherit systemd

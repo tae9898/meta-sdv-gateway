@@ -1,10 +1,10 @@
 /**
  * @file rs485_handler.c
- * @brief RS485 수신 스레드 구현 (USB-Serial)
+ * @brief RS485 receive thread implementation (USB-Serial)
  *
- * /dev/ttyUSB0 → 프레임 파싱 → gw_queue_push()
+ * /dev/ttyUSB0 → frame parsing → gw_queue_push()
  *
- * STM32 RS485 프레임 포맷:
+ * STM32 RS485 frame format:
  *   [ID_H][ID_L][DLC][DATA 0..DLC-1]
  */
 
@@ -21,7 +21,7 @@
 #define RS485_DEVICE  "/dev/ttyUSB0"
 #define RS485_BAUD    B115200
 
-/* 최소 프레임 길이: ID_H + ID_L + DLC = 3바이트 */
+/* Minimum frame length: ID_H + ID_L + DLC = 3 bytes */
 #define FRAME_HEADER_LEN  3
 
 static int configure_serial(int fd)
@@ -34,7 +34,7 @@ static int configure_serial(int fd)
         return -1;
     }
 
-    /* 115200 8N1, raw 모드 */
+    /* 115200 8N1, raw mode */
     cfsetospeed(&tty, RS485_BAUD);
     cfsetispeed(&tty, RS485_BAUD);
 
@@ -50,7 +50,7 @@ static int configure_serial(int fd)
     tty.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL);
     tty.c_oflag &= ~OPOST;
 
-    /* read()는 최소 1바이트, 타임아웃 100ms */
+    /* read() returns at least 1 byte, 100ms timeout */
     tty.c_cc[VMIN]  = 1;
     tty.c_cc[VTIME] = 1;
 
@@ -64,7 +64,7 @@ static int configure_serial(int fd)
 }
 
 /**
- * 프레임 파싱 상태머신.
+ * Frame parsing state machine.
  * [ID_H][ID_L][DLC][DATA 0..DLC-1]
  */
 typedef struct {
@@ -109,7 +109,7 @@ void *rs485_rx_thread(void *arg)
         if (parser.state == SYNC && parser.pos >= FRAME_HEADER_LEN) {
             parser.frame_len = FRAME_HEADER_LEN + parser.buf[2]; /* buf[2] = DLC */
             if (parser.frame_len > (int)sizeof(parser.buf)) {
-                /* 잘못된 프레임 — 리셋 */
+                /* Bad frame — reset */
                 memset(&parser, 0, sizeof(parser));
                 continue;
             }
@@ -117,7 +117,7 @@ void *rs485_rx_thread(void *arg)
         }
 
         if (parser.state == DATA && parser.pos >= parser.frame_len) {
-            /* 완전한 프레임 수신 */
+            /* Complete frame received */
             gw_message_t msg;
             memset(&msg, 0, sizeof(msg));
             msg.type = MSG_TYPE_RS485;
@@ -132,7 +132,7 @@ void *rs485_rx_thread(void *arg)
             gw_queue_push(&g_rx_queue, &msg);
             atomic_fetch_add(&g_stats.rs485_rx_count, 1);
 
-            /* 파서 리셋 */
+            /* Reset parser */
             memset(&parser, 0, sizeof(parser));
         }
     }

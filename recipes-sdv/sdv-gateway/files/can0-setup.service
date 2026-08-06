@@ -1,0 +1,18 @@
+[Unit]
+Description=CAN-FD can0 interface setup (500kbps arb / 2Mbps data, BRS)
+Documentation=file:///meta-sdv-gw
+# Run after CANable USB is registered as can0 device (avoid race)
+After=sys-subsystem-net-devices-can0.device systemd-udevd.service
+Wants=sys-subsystem-net-devices-can0.device
+# Prepare the CAN interface before the gateway/receiver starts
+Before=sdv-gateway.service pm-receiver.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# Reuse the existing can-setup script (500kbps + CAN-FD data phase 2Mbps)
+ExecStart=/usr/bin/can-setup
+ExecStop=/usr/sbin/ip link set can0 down
+
+[Install]
+WantedBy=multi-user.target

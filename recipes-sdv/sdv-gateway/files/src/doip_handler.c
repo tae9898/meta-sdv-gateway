@@ -1,12 +1,12 @@
 /**
  * @file doip_handler.c
- * @brief DoIP 양방향 스레드 (송신 + 수신)
+ * @brief DoIP bidirectional thread (send + receive)
  *
- * doip_tx_thread: 공유 큐에서 메시지 pull → DoIP 캡슐화 → UDP 전송
- *                 (요청자가 있으면 유니캐스트 회신, 없으면 브로드캐스트)
- * doip_rx_thread: UDP 13400 수신 → DoIP diagnostic 파싱 → CAN 프레임 송신 (0x7E0)
+ * doip_tx_thread: pull messages from shared queue → DoIP encapsulation → UDP send
+ *                 (unicast reply if a requester exists, else broadcast)
+ * doip_rx_thread: receive UDP 13400 → parse DoIP diagnostic → send CAN frame (0x7E0)
  *
- * DoIP 헤더 (ISO 13400): [Ver 1B][InvVer 1B][PayloadType 2B][PayloadLen 4B][Payload]
+ * DoIP header (ISO 13400): [Ver 1B][InvVer 1B][PayloadType 2B][PayloadLen 4B][Payload]
  *   Payload Type 0x8001 = Diagnostic Message
  *   Diagnostic payload = [SrcAddr 2B][TgtAddr 2B][CAN Data N bytes]
  */
@@ -28,14 +28,14 @@
 #define DOIP_PT_DIAG_MSG  0x8001
 #define DOIP_HEADER_LEN   8
 #define CAN_IFACE         "can0"
-#define CAN_REQUEST_ID    0x7E0   /* OBD-II/UDS 진단 요청 ID */
+#define CAN_REQUEST_ID    0x7E0   /* OBD-II/UDS diagnostic request ID */
 
-/* 마지막 DoIP 요청자 주소 (doip_tx가 회신할 대상) */
+/* Last DoIP requester address (the target doip_tx replies to) */
 static struct sockaddr_in g_peer_addr;
 static int                g_peer_set = 0;
 static pthread_mutex_t    g_peer_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-/* ── DoIP 프레임 빌드 ─────────────────────────────── */
+/* ── DoIP frame builder ─────────────────────────────── */
 static size_t build_doip_frame(uint8_t *out, uint16_t ptype,
                                 const uint8_t *payload, uint16_t plen)
 {
@@ -72,7 +72,7 @@ static uint16_t msg_to_diag_payload(const gw_message_t *msg, uint8_t *out,
     return (uint16_t)needed;
 }
 
-/* ── DoIP 송신 스레드 (CAN/RS485 → DoIP → Tester) ─── */
+/* ── DoIP send thread (CAN/RS485 → DoIP → Tester) ─── */
 void *doip_tx_thread(void *arg)
 {
     (void)arg;
@@ -104,7 +104,7 @@ void *doip_tx_thread(void *arg)
         size_t frame_len = build_doip_frame(doip_buf, DOIP_PT_DIAG_MSG,
                                             diag_buf, diag_len);
 
-        /* 대상: 알려진 요청자면 유니캐스트, 아니면 브로드캐스트 */
+        /* Target: unicast if requester is known, else broadcast */
         struct sockaddr_in dest = bcast_dest;
         pthread_mutex_lock(&g_peer_mutex);
         if (g_peer_set) dest = g_peer_addr;
@@ -124,12 +124,12 @@ void *doip_tx_thread(void *arg)
     return NULL;
 }
 
-/* ── DoIP 수신 스레드 (Tester → DoIP → CAN 0x7E0) ─── */
+/* ── DoIP receive thread (Tester → DoIP → CAN 0x7E0) ─── */
 void *doip_rx_thread(void *arg)
 {
     (void)arg;
 
-    /* UDP 수신 소켓 (13400) */
+    /* UDP receive socket (13400) */
     int usock = socket(AF_INET, SOCK_DGRAM, 0);
     if (usock < 0) {
         perror("[doip-rx] udp socket failed");
@@ -146,7 +146,7 @@ void *doip_rx_thread(void *arg)
         return NULL;
     }
 
-    /* CAN 송신 소켓 */
+    /* CAN send socket */
     int csock = gw_open_can_socket(CAN_IFACE, "[doip-rx]");
     if (csock < 0) {
         close(usock);
@@ -163,25 +163,25 @@ void *doip_rx_thread(void *arg)
                              (struct sockaddr *)&peer, &plen);
         if (n < DOIP_HEADER_LEN) continue;
 
-        /* DoIP 헤더 검증 */
+        /* DoIP header validation */
         uint16_t ptype = (buf[2] << 8) | buf[3];
         if (buf[0] != DOIP_VERSION || buf[1] != DOIP_INV_VER) continue;
         if (ptype != DOIP_PT_DIAG_MSG) continue;
 
-        /* 요청자 주소 기억 (doip_tx가 회신) */
+        /* Remember requester address (doip_tx replies) */
         pthread_mutex_lock(&g_peer_mutex);
         g_peer_addr = peer;
         g_peer_set = 1;
         pthread_mutex_unlock(&g_peer_mutex);
 
-        /* diagnostic payload에서 CAN 데이터 추출 ([src2][tgt2][data...]) */
+        /* Extract CAN data from diagnostic payload ([src2][tgt2][data...]) */
         uint32_t paylen = ((uint32_t)buf[4] << 24) | ((uint32_t)buf[5] << 16) |
                           ((uint32_t)buf[6] << 8) | buf[7];
         if (paylen < 4) continue;
         uint32_t data_len = paylen - 4;
         if (data_len > 64) data_len = 64;
 
-        /* CAN 프레임 송신 (0x7E0) */
+        /* Send CAN frame (0x7E0) */
         struct canfd_frame frame;
         memset(&frame, 0, sizeof(frame));
         frame.can_id = CAN_REQUEST_ID;

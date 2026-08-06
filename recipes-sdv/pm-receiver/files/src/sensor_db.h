@@ -3,7 +3,7 @@
 #include "frame_protocol.h"
 #include <sqlite3.h>
 
-/* SQLite 시계열 저장. 열린 DB는 단일 스레드(pm-receiver main)에서만 사용. */
+/* SQLite time-series storage. The open DB is used only by a single thread (pm-receiver main). */
 typedef struct {
     sqlite3 *db;
     sqlite3_stmt *stmt_feature;

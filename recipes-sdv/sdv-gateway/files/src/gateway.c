@@ -1,6 +1,6 @@
 /**
  * @file gateway.c
- * @brief 공유 큐 및 통계 구현
+ * @brief Shared queue and statistics implementation
  */
 
 #include "gateway.h"
@@ -43,7 +43,7 @@ int gw_queue_push(gw_queue_t *q, const gw_message_t *msg)
 
     int next = (q->tail + 1) % GW_QUEUE_DEPTH;
     if (next == q->head) {
-        /* 큐 full — 가장 오래된 메시지 drop */
+        /* Queue full — drop the oldest message */
         q->head = (q->head + 1) % GW_QUEUE_DEPTH;
     }
 
@@ -65,7 +65,7 @@ int gw_queue_pop(gw_queue_t *q, gw_message_t *msg)
 
     if (!g_running && q->head == q->tail) {
         pthread_mutex_unlock(&q->mutex);
-        return -1;  /* 종료 신호 */
+        return -1;  /* termination signal */
     }
 
     *msg = q->buffer[q->head];

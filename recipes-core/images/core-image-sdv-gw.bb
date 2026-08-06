@@ -4,14 +4,14 @@ for Software-Defined Vehicle diagnostic platform."
 
 inherit core-image
 
-# 필수 패키지
+# Essential packages
 IMAGE_INSTALL += " \
     packagegroup-core-boot \
     packagegroup-core-ssh-openssh \
     ${CORE_IMAGE_EXTRA_INSTALL} \
 "
 
-# SDV 게이트웨이 관련 패키지
+# SDV gateway packages
 IMAGE_INSTALL:append = " \
     can-utils \
     iproute2 \
@@ -22,30 +22,30 @@ IMAGE_INSTALL:append = " \
     kernel-modules \
 "
 
-# 이미지 기능
+# Image features
 IMAGE_FEATURES += " \
     debug-tweaks \
     ssh-server-openssh \
     package-management \
 "
 
-# 루트파일시스템 크기 여유 (MB)
+# Root filesystem extra space (MB)
 IMAGE_ROOTFS_EXTRA_SPACE = "512"
 
-# 이미지 타입 (wic.bz2 = SD카드용, ext4 = RAUC 번들용 슬롯 이미지)
+# Image types (wic.bz2 = for SD card, ext4 = slot image for RAUC bundle)
 IMAGE_FSTYPES = "ext4 wic.bz2 wic.bmap"
 
 # ============================================================
-# RAUC A/B OTA 설정
+# RAUC A/B OTA configuration
 # ============================================================
-# A/B 듀얼 rootfs 파티션 레이아웃 (wic/sdimage-dual-raspberrypi.wks.in)
+# A/B dual rootfs partition layout (wic/sdimage-dual-raspberrypi.wks.in)
 WKS_FILE = "sdimage-dual-raspberrypi.wks.in"
 
-# RAUC + 커널을 rootfs에 포함 (커널이 슬롯별로 업데이트되도록 /boot 가 아닌 rootfs에)
+# Include RAUC + kernel in rootfs (in rootfs, not /boot, so the kernel updates per slot)
 IMAGE_INSTALL:append = " rauc kernel-image"
 
-# 커널을 공유 /boot(FAT) 파티션에서 제거 (각 rootfs 슬롯의 /boot 에서 로드)
+# Remove the kernel from the shared /boot (FAT) partition (load from each rootfs slot's /boot)
 RPI_EXTRA_IMAGE_BOOT_FILES:remove = "${KERNEL_IMAGETYPE}"
 
-# 타임존
+# Timezone
 IMAGE_INSTALL:append = " tzdata"

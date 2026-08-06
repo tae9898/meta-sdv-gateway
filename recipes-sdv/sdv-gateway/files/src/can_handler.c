@@ -1,8 +1,8 @@
 /**
  * @file can_handler.c
- * @brief SocketCAN 수신 스레드 구현
+ * @brief SocketCAN receive thread implementation
  *
- * USB-CAN-FD 어댑터 → SocketCAN (can0) → gw_queue_push()
+ * USB-CAN-FD adapter → SocketCAN (can0) → gw_queue_push()
  */
 
 #include "can_handler.h"
@@ -26,7 +26,7 @@ void *can_rx_thread(void *arg)
 
     printf("[can] listening on %s\n", CAN_IFACE);
 
-    /* 수신 루프 */
+    /* Receive loop */
     struct canfd_frame frame;
     while (g_running) {
         int nbytes = read(sock, &frame, sizeof(frame));
@@ -36,7 +36,7 @@ void *can_rx_thread(void *arg)
             continue;
         }
 
-        /* 큐에 push */
+        /* Push to queue */
         gw_message_t msg;
         memset(&msg, 0, sizeof(msg));
         msg.type = MSG_TYPE_CAN;

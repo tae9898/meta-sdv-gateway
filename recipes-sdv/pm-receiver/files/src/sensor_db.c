@@ -1,4 +1,4 @@
-/* sensor_db.c — SQLite 시계열 저장 (feature_vector / anomaly_event) */
+/* sensor_db.c — SQLite time-series storage (feature_vector / anomaly_event) */
 #include "sensor_db.h"
 #include <stdio.h>
 #include <string.h>

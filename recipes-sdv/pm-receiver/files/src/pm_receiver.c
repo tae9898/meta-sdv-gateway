@@ -1,6 +1,6 @@
-/* pm_receiver.c — STM32 UART 프레임 → SQLite 수신기 (Project 4 Phase 1a)
- * 사용: pm-receiver [serial_dev] [db_path]   (기본 /dev/ttyACM0, sensors.db)
- * 직렬 open/termios 패턴은 sdv-gateway rs485_handler.c 차용. */
+/* pm_receiver.c — STM32 UART frame → SQLite receiver (Project 4 Phase 1a)
+ * Usage: pm-receiver [serial_dev] [db_path]   (default /dev/ttyACM0, sensors.db)
+ * Serial open/termios pattern borrowed from sdv-gateway rs485_handler.c. */
 #include "frame_protocol.h"
 #include "frame_decoder.h"
 #include "sensor_db.h"
@@ -18,7 +18,7 @@
 static volatile sig_atomic_t g_running = 1;
 static void on_signal(int sig) { (void)sig; g_running = 0; }
 
-/* 115200 8N1 raw 모드로 직렬 포트 open */
+/* Open the serial port in 115200 8N1 raw mode */
 static int open_serial(const char *dev) {
     int fd = open(dev, O_RDWR | O_NOCTTY);
     if (fd < 0) return -1;
@@ -31,8 +31,8 @@ static int open_serial(const char *dev) {
     tty.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
     tty.c_iflag &= ~(IXON | IXOFF | IXANY | IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL);
     tty.c_oflag &= ~OPOST;
-    tty.c_cc[VMIN]  = 1;          /* 최소 1바이트 */
-    tty.c_cc[VTIME] = 1;          /* 100ms 타임아웃 */
+    tty.c_cc[VMIN]  = 1;          /* min 1 byte */
+    tty.c_cc[VTIME] = 1;          /* 100ms timeout */
     if (tcsetattr(fd, TCSANOW, &tty) != 0) { close(fd); return -1; }
     tcflush(fd, TCIFLUSH);
     return fd;

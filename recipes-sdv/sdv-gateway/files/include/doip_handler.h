@@ -1,8 +1,8 @@
 /**
  * @file doip_handler.h
- * @brief DoIP (Diagnostic over IP) 송신 스레드
+ * @brief DoIP (Diagnostic over IP) send thread
  *
- * 공유 큐에서 메시지를 pull하여 DoIP 프레임으로 캡슐화 후 UDP/TCP 전송.
+ * Pulls messages from the shared queue, encapsulates them into DoIP frames, and sends over UDP/TCP.
  */
 
 #ifndef DOIP_HANDLER_H
@@ -11,28 +11,28 @@
 #include <pthread.h>
 
 /**
- * DoIP 송신 스레드 진입점.
+ * DoIP send thread entry point.
  *
- * @param arg  사용하지 않음 (NULL)
+ * @param arg  unused (NULL)
  * @return     NULL
  *
- * 흐름:
- *   1. UDP 소켓 생성 (포트 13400, DoIP 표준 포트)
- *   2. 루프: gw_queue_pop() → DoIP 헤더 생성 → sendto()
+ * Flow:
+ *   1. Create UDP socket (port 13400, standard DoIP port)
+ *   2. Loop: gw_queue_pop() → build DoIP header → sendto()
  *
- * DoIP 프레임 포맷 (ISO 13400):
+ * DoIP frame format (ISO 13400):
  *   [Protocol Version: 1byte][Inverse Version: 1byte]
  *   [Payload Type: 2byte][Payload Length: 4byte][Payload: N bytes]
  *
- * 사용하는 Payload Type:
+ * Payload Type used:
  *   0x8001: Diagnostic message (CAN/RS485 → IP)
  */
 void *doip_tx_thread(void *arg);
 
 /**
- * DoIP 수신 스레드 진입점 (양방향: Tester → DoIP → CAN).
- * UDP 13400 수신 → DoIP diagnostic 파싱 → CAN 0x7E0 송신.
- * 요청자 주소를 기억해 doip_tx가 유니캐스트 회신.
+ * DoIP receive thread entry point (bidirectional: Tester → DoIP → CAN).
+ * Receive UDP 13400 → parse DoIP diagnostic → send CAN 0x7E0.
+ * Remembers the requester address so doip_tx replies with unicast.
  */
 void *doip_rx_thread(void *arg);
 

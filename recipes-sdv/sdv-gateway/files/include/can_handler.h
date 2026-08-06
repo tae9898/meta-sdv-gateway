@@ -1,8 +1,8 @@
 /**
  * @file can_handler.h
- * @brief SocketCAN 수신 스레드
+ * @brief SocketCAN receive thread
  *
- * USB-CAN-FD 어댑터로 CAN 프레임을 수신하여 공유 큐에 push.
+ * Receives CAN frames from the USB-CAN-FD adapter and pushes them to the shared queue.
  */
 
 #ifndef CAN_HANDLER_H
@@ -11,16 +11,16 @@
 #include <pthread.h>
 
 /**
- * SocketCAN 수신 스레드 진입점.
+ * SocketCAN receive thread entry point.
  *
- * @param arg  사용하지 않음 (NULL)
+ * @param arg  unused (NULL)
  * @return     NULL
  *
- * 흐름:
- *   1. socket(PF_CAN, SOCK_RAW, CAN_RAW) 열기
- *   2. CAN-FD 활성화 setsockopt(SOL_CAN_RAW, CAN_RAW_FD_FRAMES)
- *   3. 인터페이스 "can0" 바인드
- *   4. 루프: read() → gw_message_t 변환 → gw_queue_push()
+ * Flow:
+ *   1. Open socket(PF_CAN, SOCK_RAW, CAN_RAW)
+ *   2. Enable CAN-FD with setsockopt(SOL_CAN_RAW, CAN_RAW_FD_FRAMES)
+ *   3. Bind interface "can0"
+ *   4. Loop: read() → convert to gw_message_t → gw_queue_push()
  */
 void *can_rx_thread(void *arg);
 

@@ -1,14 +1,14 @@
 /**
  * @file main.c
- * @brief SDV Multi-protocol Diagnostic Gateway - 메인 진입점
+ * @brief SDV Multi-protocol Diagnostic Gateway - main entry point
  *
- * 3개의 pthread 생성:
- *   1. CAN 수신 (SocketCAN)
- *   2. RS485 수신 (USB-Serial)
- *   3. DoIP 송신 (UDP)
+ * Spawns 3 pthreads:
+ *   1. CAN receive (SocketCAN)
+ *   2. RS485 receive (USB-Serial)
+ *   3. DoIP send (UDP)
  *
- * 공유 Queue + pthread_mutex로 스레드 간 통신.
- * SIGINT/SIGTERM으로 정상 종료.
+ * Inter-thread communication via shared Queue + pthread_mutex.
+ * Clean shutdown on SIGINT/SIGTERM.
  */
 
 #include <signal.h>
@@ -21,7 +21,7 @@
 #include "rs485_handler.h"
 #include "doip_handler.h"
 
-/* 글로벌 상태 */
+/* Global state */
 gw_queue_t   g_rx_queue;
 gw_stats_t   g_stats;
 volatile int g_running = 1;
@@ -30,7 +30,7 @@ static void signal_handler(int sig)
 {
     (void)sig;
     g_running = 0;
-    /* 대기 중인 스레드 깨우기 */
+    /* Wake waiting threads */
     pthread_mutex_lock(&g_rx_queue.mutex);
     pthread_cond_broadcast(&g_rx_queue.cond_not_empty);
     pthread_mutex_unlock(&g_rx_queue.mutex);
@@ -49,12 +49,12 @@ int main(void)
 {
     pthread_t tid_can, tid_rs485, tid_doip, tid_doip_rx;
 
-    /* stdout line-buffer (systemd journal에 즉시 출력) */
+    /* stdout line-buffer (immediate output to systemd journal) */
     setvbuf(stdout, NULL, _IOLBF, 0);
 
     printf("[gateway] SDV Gateway starting...\n");
 
-    /* 공유 리소스 초기화 */
+    /* Initialize shared resources */
     if (gw_queue_init(&g_rx_queue) != 0) {
         fprintf(stderr, "[gateway] queue init failed\n");
         return 1;
@@ -66,7 +66,7 @@ int main(void)
 
     setup_signals();
 
-    /* 스레드 생성 */
+    /* Create threads */
     pthread_create(&tid_can,      NULL, can_rx_thread,   NULL);
     pthread_create(&tid_rs485,    NULL, rs485_rx_thread,  NULL);
     pthread_create(&tid_doip,     NULL, doip_tx_thread,   NULL);
@@ -74,7 +74,7 @@ int main(void)
 
     printf("[gateway] 4 threads started. Press Ctrl+C to stop.\n");
 
-    /* 메인 루프: 통계 주기적 출력 */
+    /* Main loop: periodic statistics output */
     while (g_running) {
         sleep(5);
         if (g_running) {
@@ -84,13 +84,13 @@ int main(void)
 
     printf("\n[gateway] shutting down...\n");
 
-    /* 스레드 종료 대기 */
+    /* Wait for threads to exit */
     pthread_join(tid_doip_rx, NULL);
     pthread_join(tid_doip,    NULL);
     pthread_join(tid_can,     NULL);
     pthread_join(tid_rs485,   NULL);
 
-    /* 최종 통계 */
+    /* Final statistics */
     printf("[gateway] final stats:\n");
     gw_stats_print(&g_stats);
 

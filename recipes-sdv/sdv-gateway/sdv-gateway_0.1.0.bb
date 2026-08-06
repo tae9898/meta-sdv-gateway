@@ -6,11 +6,12 @@ LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda
 
 PV = "0.1.0"
 
-# 소스코드는 레이어 내 files/ 디렉토리에서 직접 가져옴
+# Source code is taken directly from the files/ directory within the layer
 SRC_URI = "file://CMakeLists.txt \
            file://include \
            file://src \
            file://can-setup.sh \
+           file://can0-setup.service \
            file://sdv-gateway.service"
 
 S = "${WORKDIR}"
@@ -21,18 +22,19 @@ DEPENDS = ""
 
 RDEPENDS:${PN} = "can-utils iproute2"
 
-# systemd 서비스
-SYSTEMD_SERVICE:${PN} = "sdv-gateway.service"
+# systemd services (can0-setup: CAN-FD auto-config oneshot, sdv-gateway: gateway main)
+SYSTEMD_SERVICE:${PN} = "sdv-gateway.service can0-setup.service"
 SYSTEMD_AUTO_ENABLE:${PN} = "enable"
 
-# cmake do_install로 바이너리 설치 후 추가 파일 설치
+# Install additional files after cmake do_install installs the binary
 do_install:append() {
-    # CAN 초기화 스크립트
+    # CAN init script (called as ExecStart by can0-setup.service)
     install -m 0755 ${WORKDIR}/can-setup.sh ${D}${bindir}/can-setup
 
-    # systemd 서비스
+    # systemd services
     install -d ${D}${systemd_system_unitdir}
+    install -m 0644 ${WORKDIR}/can0-setup.service ${D}${systemd_system_unitdir}/
     install -m 0644 ${WORKDIR}/sdv-gateway.service ${D}${systemd_system_unitdir}/
 }
 
-FILES:${PN} += "${bindir}/can-setup ${systemd_system_unitdir}/sdv-gateway.service"
+FILES:${PN} += "${bindir}/can-setup ${systemd_system_unitdir}/can0-setup.service ${systemd_system_unitdir}/sdv-gateway.service"

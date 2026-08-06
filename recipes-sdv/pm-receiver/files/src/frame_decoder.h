@@ -2,13 +2,13 @@
 #define FRAME_DECODER_H
 #include "frame_protocol.h"
 
-/* 디코더는 바이트를 주입(feed)하며, 0xA5 동기 + CRC 검증을 거쳐 완전한 프레임을 내놓는다. */
+/* The decoder is fed bytes and, after 0xA5 sync + CRC validation, emits a complete frame. */
 typedef struct {
     uint8_t buf[FRAME_HDR_LEN + FRAME_MAX_PAYLOAD + FRAME_CRC_LEN];
-    int     pos;     /* buf에 쌓인 바이트 수 */
+    int     pos;     /* number of bytes accumulated in buf */
 } frame_decoder_t;
 
-/* 디코딩 결과. payload는 디코더 내부 버퍼 포인터(다음 feed 전까지 유효) */
+/* Decode result. payload points into the decoder's internal buffer (valid until the next feed) */
 typedef struct {
     frame_type_t    type;
     uint16_t        payload_len;
@@ -17,7 +17,7 @@ typedef struct {
 
 void frame_decoder_init(frame_decoder_t *d);
 
-/* 한 바이트 주입. 유효 프레임 완성 시 1 반환(out 채움), 아니면 0 */
+/* Feed one byte. Returns 1 (filling out) when a valid frame completes, else 0 */
 int  frame_decoder_feed(frame_decoder_t *d, uint8_t byte, frame_t *out);
 
 #endif

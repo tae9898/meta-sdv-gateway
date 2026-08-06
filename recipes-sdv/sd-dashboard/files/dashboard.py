@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""예지보전 실시간 대시보드 — 순수 Python 표준라이브러리 (Flask/pip 불필요).
-RPi3의 pm-receiver SQLite를 읽어 Chart.js로 실시간 시각화 + 이상 토스트.
+"""Predictive-maintenance real-time dashboard — pure Python standard library (no Flask/pip needed).
+Reads the RPi3 pm-receiver SQLite, visualizes it in real time with Chart.js, and toasts anomalies.
 
-사용: dashboard.py [db_path] [port]   (기본 /var/lib/pm-receiver/sensors.db, 8080)
-접속: http://<RPi3>:8080/
+Usage: dashboard.py [db_path] [port]   (default /var/lib/pm-receiver/sensors.db, 8080)
+Open: http://<RPi3>:8080/
 """
 import json
 import os
@@ -15,10 +15,10 @@ from urllib.parse import urlparse, parse_qs
 DB_PATH = "/var/lib/pm-receiver/sensors.db"
 PORT = 8080
 
-# Chart.js 4 (CDN). 브라우저가 인터넷에서 가져옴 (RPi3는 인터넷 불필요).
+# Chart.js 4 (CDN). Fetched by the browser (RPi3 needs no internet).
 HTML = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>예지보전 대시보드</title>
+<title>Predictive Maintenance Dashboard</title>
 <script src="/chart.js"></script>
 <style>
   *{box-sizing:border-box}
@@ -37,18 +37,18 @@ HTML = r"""<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8">
   .ok{color:#3fb950}.bad{color:#f85149}
   #status{font-size:12px;font-weight:400}
 </style></head><body>
-<h1>🔮 예지보전 실시간 진동 대시보드 <span id="status">연결 중…</span></h1>
+<h1>🔮 Predictive Maintenance Real-time Vibration Dashboard <span id="status">Connecting…</span></h1>
 <div id="toast"></div>
 <div class="stats">
   <div class="stat"><b>RMS (mg)</b><span id="s_rms">-</span></div>
   <div class="stat"><b>Kurtosis</b><span id="s_kurt">-</span></div>
   <div class="stat"><b>Crest</b><span id="s_crest">-</span></div>
-  <div class="stat"><b>지배주파수 (Hz)</b><span id="s_f0">-</span></div>
-  <div class="stat"><b>상태</b><span id="s_state">-</span></div>
-  <div class="stat"><b>온도 (°C)</b><span id="s_temp">-</span></div>
+  <div class="stat"><b>Dominant freq (Hz)</b><span id="s_f0">-</span></div>
+  <div class="stat"><b>Status</b><span id="s_state">-</span></div>
+  <div class="stat"><b>Temperature (°C)</b><span id="s_temp">-</span></div>
 </div>
 <div class="card"><canvas id="chart"></canvas></div>
-<div class="card"><b>최근 이상 이벤트</b><div id="anoms" style="margin-top:6px"></div></div>
+<div class="card"><b>Recent anomaly events</b><div id="anoms" style="margin-top:6px"></div></div>
 
 <script>
 const MAX = 60;
@@ -93,7 +93,7 @@ async function init(){
 function renderAnoms(anoms){
   document.getElementById('anoms').innerHTML = anoms.slice(0,5)
     .map(r => `<div><span class="bad">⚠</span> ${fmtTime(r.ts)} rms=${r.rms} kurt=${r.kurt} (thr ${r.thr_kurt}) reason=${r.reason?'kurt':'rms'}</div>`)
-    .join('') || '<div style="color:#8b949e">이상 없음</div>';
+    .join('') || '<div style="color:#8b949e">No anomalies</div>';
 }
 async function poll(){
   try{
@@ -104,7 +104,7 @@ async function poll(){
       document.getElementById('s_crest').textContent= L.crest;
       document.getElementById('s_f0').textContent   = L.f0;
       const st = document.getElementById('s_state');
-      st.textContent = L.anomaly ? '⚠ ANOMALY' : '✓ 정상';
+      st.textContent = L.anomaly ? '⚠ ANOMALY' : '✓ Normal';
       st.className = L.anomaly ? 'bad' : 'ok';
       if (chart.data.labels.length) pushPoint(L.ts, L.rms, L.kurtosis);
     }
@@ -113,12 +113,12 @@ async function poll(){
     const A = await get('/api/anomalies?n=5') || [];
     if (A.length && A[0].ts !== lastAnomTs){
       lastAnomTs = A[0].ts;
-      toast('⚠ 이상 감지: kurt=' + A[0].kurt + ' (임계 ' + A[0].thr_kurt + ')');
+      toast('⚠ Anomaly detected: kurt=' + A[0].kurt + ' (threshold ' + A[0].thr_kurt + ')');
     }
     renderAnoms(A);
     document.getElementById('status').textContent = '● live';
   }catch(e){
-    document.getElementById('status').textContent = '● 연결 끊김';
+    document.getElementById('status').textContent = '● Disconnected';
   }
 }
 init().then(()=>{poll(); setInterval(poll, 1000);});
@@ -138,7 +138,7 @@ def db_query(sql, args=()):
 _cleanup_counter = 0
 
 def db_cleanup():
-    """feature_vector 최근 200행만 유지 (디스크 만석 방지). anomaly_event는 보존."""
+    """Keep only the last 200 feature_vector rows (prevent disk full). anomaly_event is preserved."""
     con = sqlite3.connect(DB_PATH, timeout=2)
     try:
         con.execute("DELETE FROM feature_vector WHERE rowid NOT IN "
@@ -221,7 +221,7 @@ def main():
     if len(sys.argv) > 2:
         PORT = int(sys.argv[2])
     print(f"[dashboard] http://0.0.0.0:{PORT}  db={DB_PATH}", flush=True)
-    # 초기 DB 확인
+    # Initial DB check
     try:
         s = db_query("SELECT COUNT(*) c FROM feature_vector")
         print(f"[dashboard] feature rows: {s[0]['c'] if s else 0}", flush=True)

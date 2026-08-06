@@ -1,18 +1,18 @@
 [Unit]
 Description=SDV Multi-protocol Diagnostic Gateway
-After=network.target
+Requires=can0-setup.service
+After=can0-setup.service network.target
 Wants=network.target
 
 [Service]
 Type=simple
-ExecStartPre=/usr/bin/can-setup
 ExecStart=/usr/bin/sdv-gateway
 Restart=on-failure
 RestartSec=5
 StandardOutput=journal
 StandardError=journal
 
-# 보안 (임베디드 데모용 완화)
+# Security (relaxed for embedded demo)
 #ProtectSystem=strict
 #ProtectHome=yes
 #NoNewPrivileges=yes
